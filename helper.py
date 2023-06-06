@@ -6,6 +6,7 @@ from lxml import etree
 
 col_names = ["car_model", "year_of_manufacture", "price", "fuel"]
 
+
 def clean(list: list) -> list:
     for line in list:
         line["price"] = round(float(line["price"]), 2)
