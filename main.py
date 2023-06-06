@@ -21,7 +21,7 @@ def keep_models(count_dict: dict) -> list:
 
 
 def clean_data(data: list, keep_models: list) -> list:
-    i = 1
+    i = 0
     while i < len(data):
         if not (data[i]["car_model"] in keep_models):
             data.pop(i)
