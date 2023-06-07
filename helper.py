@@ -5,6 +5,7 @@ import json
 from lxml import etree
 
 col_names = ["car_model", "year_of_manufacture", "price", "fuel"]
+in_path = r"dealership_data"
 out_path = "out.csv"
 
 
@@ -17,27 +18,27 @@ class Printer:
         self.writer.writeheader()
         self.count_dict = {}
 
-    def save_data(self, data: dict):
-        data = clean(data)
-        match = self.count_dict.get(data['car_model'])
+    def save_data(self, line: dict):
+        line = clean(line)
+        match = self.count_dict.get(line['car_model'])
         if match is True:
-            self.writer.writerow(data)
+            self.writer.writerow(line)
         elif match is None:
-            self.count_dict[data['car_model']] = {"count": 1, "queue": [data]}
+            self.count_dict[line['car_model']] = {"count": 1, "queue": [line]}
         elif match['count'] < 3:
-            self.count_dict[data['car_model']]["count"] += 1
-            self.count_dict[data["car_model"]]["queue"].append(data)
+            self.count_dict[line['car_model']]["count"] += 1
+            self.count_dict[line["car_model"]]["queue"].append(line)
         elif match['count'] == 3:
-            for line in self.count_dict[data["car_model"]]["queue"]:
+            for line in self.count_dict[line["car_model"]]["queue"]:
                 self.writer.writerow(line)
-            self.count_dict[data["car_model"]] = True
+            self.writer.writerow(line)
+            self.count_dict[line["car_model"]] = True
 
 
 printer = Printer()
 
 
 def clean(line: dict) -> dict:
-    print(line)
     line["price"] = round(float(line["price"]), 2)
     return line
 
@@ -61,15 +62,16 @@ def process_xml(path: str):
         printer.save_data({x.tag: x.text for x in child})
 
 
-def process_data():
-    mypath = r"dealership_data"
-    onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+def list_dir(path: str) -> list:
+    return [f for f in listdir(path) if isfile(join(path, f))]
 
-    for path in onlyfiles:
+
+def process_data():
+    for path in list_dir(in_path):
         match path.split(".")[1]:
             case "csv":
-                process_csv(join(mypath, path))
+                process_csv(join(in_path, path))
             case "json":
-                process_json(join(mypath, path))
+                process_json(join(in_path, path))
             case "xml":
-                process_xml(join(mypath, path))
+                process_xml(join(in_path, path))
