@@ -5,47 +5,71 @@ import json
 from lxml import etree
 
 col_names = ["car_model", "year_of_manufacture", "price", "fuel"]
+out_path = "out.csv"
 
 
-def clean(list: list) -> list:
-    for line in list:
-        line["price"] = round(float(line["price"]), 2)
-    return list
+class Printer:
+
+    def __init__(self) -> None:
+        self.path = out_path
+        f = open(self.path, "w")
+        self.writer = csv.DictWriter(f, col_names)
+        self.writer.writeheader()
+        self.count_dict = {}
+
+    def save_data(self, data: dict):
+        data = clean(data)
+        match = self.count_dict.get(data['car_model'])
+        if match is True:
+            self.writer.writerow(data)
+        elif match is None:
+            self.count_dict[data['car_model']] = {"count": 1, "queue": [data]}
+        elif match['count'] < 3:
+            self.count_dict[data['car_model']]["count"] += 1
+            self.count_dict[data["car_model"]]["queue"].append(data)
+        elif match['count'] == 3:
+            for line in self.count_dict[data["car_model"]]["queue"]:
+                self.writer.writerow(line)
+            self.count_dict[data["car_model"]] = True
 
 
-def read_csv(path: str) -> list:
+printer = Printer()
+
+
+def clean(line: dict) -> dict:
+    print(line)
+    line["price"] = round(float(line["price"]), 2)
+    return line
+
+
+def process_csv(path: str):
     with open(path, "r") as csvfile:
-        return [{col_names[i]:x[i] for i in range(len(col_names))} for x in csv.reader(csvfile)][1:]
+        for line in csv.reader(csvfile):
+            if line[0] == 'car_model':
+                continue
+            printer.save_data({col_names[i]: line[i] for i in range(len(col_names))})
 
 
-def read_json(path: str) -> list:
+def process_json(path: str):
     with open(path) as jsonfile:
-        return [dict(json.loads(line)) for line in jsonfile]
+        for line in jsonfile:
+            printer.save_data(dict(json.loads(line)))
 
 
-def read_xml(path: str) -> list:
-    return [{x.tag: x.text for x in child} for child in etree.parse(path).getroot()]
+def process_xml(path: str):
+    for child in etree.parse(path).getroot():
+        printer.save_data({x.tag: x.text for x in child})
 
 
-def read_data() -> list:
+def process_data():
     mypath = r"dealership_data"
     onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
 
-    data = []
     for path in onlyfiles:
         match path.split(".")[1]:
             case "csv":
-                data.extend(clean(read_csv(join(mypath, path))))
+                process_csv(join(mypath, path))
             case "json":
-                data.extend(clean(read_json(join(mypath, path))))
+                process_json(join(mypath, path))
             case "xml":
-                data.extend(clean(read_xml(join(mypath, path))))
-    return data
-
-
-def save_data(data: list):
-    with open("out.csv", "w") as f:
-        writer = csv.DictWriter(f, col_names)
-        writer.writeheader()
-        for dict in data:
-            writer.writerow(dict)
+                process_xml(join(mypath, path))
