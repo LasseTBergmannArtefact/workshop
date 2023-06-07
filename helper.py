@@ -12,8 +12,7 @@ out_path = "out.csv"
 class Printer:
 
     def __init__(self) -> None:
-        self.path = out_path
-        f = open(self.path, "w")
+        f = open(out_path, "w")
         self.writer = csv.DictWriter(f, col_names)
         self.writer.writeheader()
         self.count_dict = {}
